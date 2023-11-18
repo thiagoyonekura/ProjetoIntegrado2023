@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\thiag\\Git Uploads\\ProjetoIntegrado23\\api\\api.csproj": {}
+    "C:\\Users\\thiag\\Git Uploads\\ProjetoIntegrado2023\\api.csproj": {}
   },
   "projects": {
-    "C:\\Users\\thiag\\Git Uploads\\ProjetoIntegrado23\\api\\api.csproj": {
+    "C:\\Users\\thiag\\Git Uploads\\ProjetoIntegrado2023\\api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\thiag\\Git Uploads\\ProjetoIntegrado23\\api\\api.csproj",
+        "projectUniqueName": "C:\\Users\\thiag\\Git Uploads\\ProjetoIntegrado2023\\api.csproj",
         "projectName": "api",
-        "projectPath": "C:\\Users\\thiag\\Git Uploads\\ProjetoIntegrado23\\api\\api.csproj",
+        "projectPath": "C:\\Users\\thiag\\Git Uploads\\ProjetoIntegrado2023\\api.csproj",
         "packagesPath": "C:\\Users\\thiag\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\thiag\\Git Uploads\\ProjetoIntegrado23\\api\\obj\\",
+        "outputPath": "C:\\Users\\thiag\\Git Uploads\\ProjetoIntegrado2023\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\thiag\\AppData\\Roaming\\NuGet\\NuGet.Config",

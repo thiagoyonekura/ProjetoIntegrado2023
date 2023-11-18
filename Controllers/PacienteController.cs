@@ -91,7 +91,8 @@ namespace api.Controllers
                                                         DataHora = c.DataHora,
                                                         NomePaciente = c.Paciente.Usuario.Nome,
                                                         NomeMedico = c.Medico.Usuario.Nome,
-                                                        Status = c.Status                                                       
+                                                        Status = c.Status,
+                                                        Observacoes = c.Observacoes
                                                     })
                                                     .ToListAsync();
 
