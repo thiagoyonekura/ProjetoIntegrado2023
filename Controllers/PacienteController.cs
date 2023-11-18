@@ -52,6 +52,7 @@ namespace api.Controllers
         }
 
         // GET: api/paciente/consultas/agendadas
+        // Retorna apenas consultas agendadas que ocorrerão no futuro (datas futuras) e somente de segunda a sexta-feira
         [HttpGet("consultas/agendadas")]
         public async Task<ActionResult<IEnumerable<ConsultaDto>>> GetConsultasAgendadasDeTodos()
         {
@@ -60,7 +61,10 @@ namespace api.Controllers
                                                     .Include(c => c.Paciente.Usuario)
                                                     .Include(c => c.Medico)
                                                     .Include(c => c.Medico.Usuario)
-                                                    .Where(c => c.Status == StatusConsulta.Agendado)
+                                                    .Where(c => c.Status == StatusConsulta.Agendado &&
+                                                                c.DataHora > DateTime.UtcNow && // Filtrar datas futuras
+                                                                c.DataHora.DayOfWeek != DayOfWeek.Saturday && // Excluir sábado
+                                                                c.DataHora.DayOfWeek != DayOfWeek.Sunday) // Excluir domingo
                                                     .Select(c => new ConsultaDto
                                                     {
                                                         ConsultaId = c.Id,
@@ -84,7 +88,11 @@ namespace api.Controllers
                                                     .Include(c => c.Paciente.Usuario)
                                                     .Include(c => c.Medico)
                                                     .Include(c => c.Medico.Usuario)
-                                                    .Where(c => c.PacienteId == pacienteId && c.Status == StatusConsulta.Agendado)
+                                                    .Where(c => c.PacienteId == pacienteId &&
+                                                                c.Status == StatusConsulta.Agendado &&
+                                                                c.DataHora > DateTime.UtcNow && // Filtro para datas futuras
+                                                                c.DataHora.DayOfWeek != DayOfWeek.Saturday && // Excluir sábado
+                                                                c.DataHora.DayOfWeek != DayOfWeek.Sunday) // Excluir domingo
                                                     .Select(c => new ConsultaDto
                                                     {
                                                         ConsultaId = c.Id,

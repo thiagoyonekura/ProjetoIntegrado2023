@@ -26,12 +26,18 @@ namespace api.Controllers
         {
             _context = context;
         }
+
         // GET: /Horario/medicos/{medicoId}/disponiveis
+        //Retorna apenas os horários disponíveis que ainda não passaram (ou seja, são futuros) e que ocorrem de segunda a sexta-feira
         [HttpGet("medicos/{medicoId}/disponiveis")]
         public ActionResult<IEnumerable<HorarioDisponivel>> GetHorariosDisponiveis(int medicoId)
         {
             var horariosDisponiveis = _context.HorariosDisponiveis
-                                              .Where(h => h.MedicoId == medicoId && h.Disponivel)
+                                              .Where(h => h.MedicoId == medicoId &&
+                                                          h.Disponivel &&
+                                                          h.DataHoraInicio > DateTime.UtcNow && // Filtrar datas futuras
+                                                          h.DataHoraInicio.DayOfWeek != DayOfWeek.Saturday && // Excluir sábado
+                                                          h.DataHoraInicio.DayOfWeek != DayOfWeek.Sunday) // Excluir domingo
                                               .ToList();
 
             if (!horariosDisponiveis.Any())
@@ -47,17 +53,21 @@ namespace api.Controllers
         public ActionResult<IEnumerable<HorariosIndisponiveisDto>> GetHorariosIndisponiveis(int medicoId)
         {
             var horariosIndisponiveis = _context.Consultas
-                                                .Where(c => c.MedicoId == medicoId && c.DataHora >= DateTime.UtcNow)
+                                                .Where(c => c.MedicoId == medicoId &&
+                                                            c.DataHora >= DateTime.UtcNow && // Filtrar datas futuras
+                                                            c.DataHora.DayOfWeek != DayOfWeek.Saturday && // Excluir sábado
+                                                            c.DataHora.DayOfWeek != DayOfWeek.Sunday) // Excluir domingo
                                                 .Select(c => new HorariosIndisponiveisDto
-                                                {   
+                                                {
                                                     MedicoId = c.MedicoId,
                                                     DataHoraInicio = c.DataHora,
-                                                    DataHoraFim = c.DataHora.AddMinutes(60) // Adiciona 60 minutos como duração padrão da consulta'
+                                                    DataHoraFim = c.DataHora.AddMinutes(60) // Adiciona 60 minutos como duração padrão da consulta
                                                 })
                                                 .ToList();
 
             return Ok(horariosIndisponiveis);
         }
+
         // GET: api/Horario
         //Retorna todos os horários disponíveis
         [HttpGet]
@@ -165,8 +175,8 @@ namespace api.Controllers
                 }
 
                 DateTime dataAtual = DateTime.UtcNow;
-                int diasParaSegundaFeira = (int)dataAtual.DayOfWeek == 0 ? -6 : 1 - (int)dataAtual.DayOfWeek;
-                DateTime dataInicioSemana = dataAtual.AddDays(diasParaSegundaFeira);
+                int diasDesdeSegundaFeira = (int)dataAtual.DayOfWeek - (int)DayOfWeek.Monday;
+                DateTime dataInicioSemana = dataAtual.AddDays(-diasDesdeSegundaFeira);
 
                 List<HorarioDisponivel> horarios = new List<HorarioDisponivel>();
                 for (int dia = 0; dia < 5; dia++)
@@ -177,15 +187,28 @@ namespace api.Controllers
                         DateTime dataHoraInicio = new DateTime(data.Year, data.Month, data.Day, hora, 0, 0, DateTimeKind.Utc);
                         DateTime dataHoraFim = dataHoraInicio.AddHours(1);
 
-                        var novoHorario = new HorarioDisponivel
+                        // Verifica se o horário já existe para o médico
+                        bool horarioJaExiste = _context.HorariosDisponiveis.Any(h =>
+                            h.MedicoId == medicoId &&
+                            h.DataHoraInicio == dataHoraInicio);
+
+                        if (!horarioJaExiste)
                         {
-                            MedicoId = medicoId,
-                            DataHoraInicio = dataHoraInicio,
-                            DataHoraFim = dataHoraFim,
-                            Disponivel = true
-                        };
-                        horarios.Add(novoHorario);
+                            var novoHorario = new HorarioDisponivel
+                            {
+                                MedicoId = medicoId,
+                                DataHoraInicio = dataHoraInicio,
+                                DataHoraFim = dataHoraFim,
+                                Disponivel = true
+                            };
+                            horarios.Add(novoHorario);
+                        }
                     }
+                }
+
+                if (!horarios.Any())
+                {
+                    return BadRequest("Nenhum novo horário disponível foi encontrado para ser gerado.");
                 }
 
                 _context.HorariosDisponiveis.AddRange(horarios);
@@ -211,7 +234,8 @@ namespace api.Controllers
                     return NotFound($"Médico com ID {medicoId} não encontrado.");
                 }
 
-                DateTime dataInicioProximaSemana = DateTime.UtcNow.AddDays(7 - (int)DateTime.UtcNow.DayOfWeek); // Iniciar na próxima segunda-feira
+                int diasAteProximaSegunda = ((int)DayOfWeek.Monday - (int)DateTime.UtcNow.DayOfWeek + 7) % 7;
+                DateTime dataInicioProximaSemana = DateTime.UtcNow.AddDays(diasAteProximaSegunda == 0 ? 7 : diasAteProximaSegunda);
                 List<HorarioDisponivel> horarios = new List<HorarioDisponivel>();
 
                 for (int dia = 0; dia < 5; dia++) // Loop para cada dia da semana (segunda a sexta)
@@ -223,15 +247,28 @@ namespace api.Controllers
                         DateTime dataHoraInicio = new DateTime(dataAtual.Year, dataAtual.Month, dataAtual.Day, hora, 0, 0, DateTimeKind.Utc);
                         DateTime dataHoraFim = dataHoraInicio.AddHours(1);
 
-                        var novoHorario = new HorarioDisponivel
+                        // Verifica se o horário já existe para o médico
+                        bool horarioJaExiste = _context.HorariosDisponiveis.Any(h =>
+                            h.MedicoId == medicoId &&
+                            h.DataHoraInicio == dataHoraInicio);
+
+                        if (!horarioJaExiste)
                         {
-                            MedicoId = medicoId,
-                            DataHoraInicio = dataHoraInicio,
-                            DataHoraFim = dataHoraFim,
-                            Disponivel = true
-                        };
-                        horarios.Add(novoHorario);
+                            var novoHorario = new HorarioDisponivel
+                            {
+                                MedicoId = medicoId,
+                                DataHoraInicio = dataHoraInicio,
+                                DataHoraFim = dataHoraFim,
+                                Disponivel = true
+                            };
+                            horarios.Add(novoHorario);
+                        }
                     }
+                }
+
+                if (!horarios.Any())
+                {
+                    return BadRequest("Nenhum novo horário disponível foi encontrado para ser gerado.");
                 }
 
                 _context.HorariosDisponiveis.AddRange(horarios);
@@ -283,8 +320,16 @@ namespace api.Controllers
             {
                 DateTime horarioCompleto = data.Date + horarioAtual;
 
-                // Verificar se o horário atual não está nos horários indisponíveis
-                if (!horariosIndisponiveis.Any(indisponivel => horarioCompleto >= indisponivel.DataHoraInicio && horarioCompleto < indisponivel.DataHoraFim))
+                // Verifique se o horário já existe para o médico
+                bool horarioJaExiste = await _context.HorariosDisponiveis.AnyAsync(h =>
+                    h.MedicoId == medicoId &&
+                    h.DataHoraInicio == horarioCompleto);
+
+                // Verifique se o horário está indisponível
+                bool horarioIndisponivel = horariosIndisponiveis.Any(indisponivel =>
+                    horarioCompleto >= indisponivel.DataHoraInicio && horarioCompleto < indisponivel.DataHoraFim);
+
+                if (!horarioJaExiste && !horarioIndisponivel)
                 {
                     horariosDisponiveis.Add(new HorarioDisponivel
                     {
@@ -296,6 +341,11 @@ namespace api.Controllers
 
                 // Incrementa para o próximo horário
                 horarioAtual = horarioAtual.Add(_duracaoHorario);
+            }
+
+            if (!horariosDisponiveis.Any())
+            {
+                return BadRequest("Nenhum novo horário disponível foi encontrado para ser gerado.");
             }
 
             // Salvar os horários disponíveis no banco de dados
